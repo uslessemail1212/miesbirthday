@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Happy Birthday Mie</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@300;400;500&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --pink-main: #ff69b9;
+      --pink-glow: #ff8ad6;
+      --text-main: #ffffff;
+      --bg-main: #000000;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg-main);
+      color: var(--text-main);
+      font-family: "Poppins", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      scroll-behavior: smooth;
+    }
+
+    body.lock-scroll {
+      overflow: hidden;
+    }
+
+    body.allow-scroll {
+      overflow-y: auto;
+    }
+
+    /* Fullscreen visual layer */
+    .scene {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      background: radial-gradient(circle at top left, #222 0, #000 45%);
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Mouse glow */
+    #mouseGlow {
+      position: fixed;
+      width: 260px;
+      height: 260px;
+      border-radius: 50%;
+      pointer-events: none;
+      mix-blend-mode: screen;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.35) 0, rgba(255, 255, 255, 0) 70%);
+      transform: translate(-50%, -50%);
+      opacity: 0.6;
+      transition: opacity 0.4s ease-out;
+      z-index: 5;
+    }
+
+    /* Layout */
+    main {
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4rem 1.5rem 5rem;
+      text-align: center;
+    }
+
+    .hero-heading {
+      font-family: "Playfair Display", "Times New Roman", serif;
+      font-size: clamp(2.8rem, 6vw, 4.5rem);
+      letter-spacing: 0.06em;
+      color: var(--pink-main);
+      text-shadow:
+        0 0 12px rgba(255, 105, 185, 0.75),
+        0 0 32px rgba(255, 105, 185, 0.7),
+        0 0 60px rgba(255, 105, 185, 0.6);
+      margin-bottom: 1.5rem;
+      opacity: 0;
+      transform: translateY(30px);
+      animation: heading-reveal 3s ease-out forwards;
+    }
+
+    .hero-sub {
+      font-size: 1.05rem;
+      opacity: 0;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-top: 1rem;
+      margin-bottom: 0.5rem;
+      color: rgba(255, 255, 255, 0.8);
+      animation: fade-in-up 1.6s ease-out forwards;
+      animation-delay: 4s;
+    }
+
+    .hero-note {
+      font-size: 0.95rem;
+      opacity: 0;
+      color: rgba(255, 255, 255, 0.7);
+      font-style: italic;
+      animation: fade-in-up 1.6s ease-out forwards;
+      animation-delay: 5.2s;
+    }
+
+    .hero-fade-out {
+      animation: hero-fade 1.8s ease-in forwards;
+    }
+
+    /* Message section (starts hidden, appears after 10s) */
+    .message-section {
+      padding: 6rem 1.5rem 7rem;
+      max-width: 900px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .message-section.hidden {
+      display: none;
+    }
+
+    .message-title {
+      font-family: "Playfair Display", serif;
+      font-size: clamp(2.2rem, 4vw, 3rem);
+      color: var(--pink-main);
+      text-shadow:
+        0 0 10px rgba(255, 105, 185, 0.9),
+        0 0 28px rgba(255, 105, 185, 0.7);
+      margin-bottom: 2rem;
+    }
+
+    .message-body {
+      font-size: 1.05rem;
+      line-height: 1.9;
+      max-width: 780px;
+      margin: 0 auto;
+      color: rgba(255, 255, 255, 0.88);
+      text-shadow: 0 0 14px rgba(0, 0, 0, 0.8);
+    }
+
+    .message-body p + p {
+      margin-top: 1.6rem;
+    }
+
+    .message-highlight {
+      margin-top: 2.8rem;
+      font-size: 1.2rem;
+      font-weight: 500;
+      color: var(--pink-main);
+      text-shadow:
+        0 0 10px rgba(255, 105, 185, 0.9),
+        0 0 26px rgba(255, 105, 185, 0.7);
+    }
+
+    /* Bottom corner flowers */
+    .flowers {
+      position: fixed;
+      bottom: -40px;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      padding-inline: 1.5rem;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .flower-cluster {
+      position: relative;
+      width: 220px;
+      max-width: 40vw;
+      height: 140px;
+      filter: drop-shadow(0 0 10px rgba(255, 120, 190, 0.7));
+      opacity: 0;
+      animation: flowers-rise 4s ease-out forwards;
+      animation-delay: 3s;
+    }
+
+    .flower {
+      position: absolute;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #ffe6f6 0, #ff7ac4 40%, #c01377 100%);
+    }
+
+    .flower.flower-1 { width: 70px; height: 70px; bottom: 6px; left: 4px; }
+    .flower.flower-2 { width: 58px; height: 58px; bottom: 18px; left: 60px; }
+    .flower.flower-3 { width: 46px; height: 46px; bottom: 0; left: 96px; }
+    .flower.flower-4 { width: 52px; height: 52px; bottom: 10px; left: 140px; }
+    .flower.flower-5 { width: 38px; height: 38px; bottom: 26px; left: 22px; }
+
+    .flower::after {
+      content: "";
+      position: absolute;
+      inset: 24%;
+      border-radius: inherit;
+      background: radial-gradient(circle, #ffeefe 0, #ff9ad7 35%, rgba(255, 255, 255, 0) 65%);
+    }
+
+    .stem {
+      position: absolute;
+      width: 3px;
+      bottom: 0;
+      background: linear-gradient(to top, #0d5b36, #46b37b);
+      border-radius: 999px;
+      box-shadow: 0 0 8px rgba(70, 179, 123, 0.6);
+    }
+
+    .stem.stem-1 { height: 90px; left: 20px; }
+    .stem.stem-2 { height: 105px; left: 72px; }
+    .stem.stem-3 { height: 80px; left: 106px; }
+    .stem.stem-4 { height: 95px; left: 152px; }
+
+    .flower-cluster.right {
+      transform: scaleX(-1);
+    }
+
+    /* Scroll hint */
+    .scroll-hint {
+      position: absolute;
+      bottom: 1.8rem;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.85rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.5);
+      opacity: 0;
+      transition: opacity 0.8s ease-out;
+    }
+
+    .scroll-hint.visible {
+      opacity: 1;
+    }
+
+    /* Keyframes */
+    @keyframes heading-reveal {
+      0%   { opacity: 0; transform: translateY(40px) scale(0.96); }
+      40%  { opacity: 1; transform: translateY(0) scale(1.02); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes fade-in-up {
+      0%   { opacity: 0; transform: translateY(22px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes hero-fade {
+      0%   { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-14px); }
+    }
+
+    @keyframes flowers-rise {
+      0%   { opacity: 0; transform: translateY(40px) scale(0.88); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* Responsive tweaks */
+    @media (max-width: 600px) {
+      .flower-cluster {
+        width: 150px;
+        height: 100px;
+      }
+      .scroll-hint {
+        font-size: 0.75rem;
+      }
+    }
+  </style>
+</head>
+<body class="lock-scroll">
+  <!-- Visual background (particles + fireworks) -->
+  <div class="scene">
+    <canvas id="particleCanvas"></canvas>
+    <canvas id="fireworksCanvas"></canvas>
+  </div>
+
+  <!-- Mouse-follow glow -->
+  <div id="mouseGlow"></div>
+
+  <!-- Corner flowers -->
+  <div class="flowers">
+    <div class="flower-cluster left">
+      <div class="stem stem-1"></div>
+      <div class="stem stem-2"></div>
+      <div class="stem stem-3"></div>
+      <div class="stem stem-4"></div>
+
+      <div class="flower flower-1"></div>
+      <div class="flower flower-2"></div>
+      <div class="flower flower-3"></div>
+      <div class="flower flower-4"></div>
+      <div class="flower flower-5"></div>
+    </div>
+
+    <div class="flower-cluster right">
+      <div class="stem stem-1"></div>
+      <div class="stem stem-2"></div>
+      <div class="stem stem-3"></div>
+      <div class="stem stem-4"></div>
+
+      <div class="flower flower-1"></div>
+      <div class="flower flower-2"></div>
+      <div class="flower flower-3"></div>
+      <div class="flower flower-4"></div>
+      <div class="flower flower-5"></div>
+    </div>
+  </div>
+
+  <!-- Hidden YouTube container for background music -->
+  <div id="yt-container" style="position:fixed; top:-9999px; left:-9999px; width:0; height:0; overflow:hidden;">
+    <div id="yt-player"></div>
+  </div>
+
+  <main>
+    <!-- First screen: hero only -->
+    <section class="hero" id="hero">
+      <h1 class="hero-heading">Happy Birthday Mie</h1>
+      <p class="hero-sub">by Ryan</p>
+      <p class="hero-note">sorry for the early gift;-;</p>
+
+      <div class="scroll-hint" id="scrollHint">
+        scroll to read my message
+      </div>
+    </section>
+
+    <!-- Below the fold: love letter, hidden until 10s -->
+    <section class="message-section hidden" id="message">
+      <h2 class="message-title">To Hun Mie</h2>
+      <div class="message-body">
+        <p>
+          On this special day, I want you to know how important you are.
+        </p>
+        <p>
+          If you are the reason that letting me playing this game i cant imagine how your real life friends and family get effected by you.
+        </p>
+        <p>
+         playing with you was making my stress goes away and
+ my happiness and forgetting about time go up GUILD EVENTS SWORD TRAILS EXPLOARION and many things that made joy by you.
+        </p>
+        <p>
+          I wish you all the happiness in the world, and TOP players in PvE lol, i hope you get what you wishing for, and every dream in your heart coming true
+thank you mie for being around us.
+        </p>
+        <p class="message-highlight">
+          YOU ARE AN AWSOME PERSON.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <!-- YouTube IFrame API -->
+  <script src="https://www.youtube.com/iframe_api"></script>
+
+  <script>
+    /* ---------- Resize helpers for canvases ---------- */
+    function fitCanvasToParent(canvas) {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * window.devicePixelRatio;
+      canvas.height = rect.height * window.devicePixelRatio;
+      const ctx = canvas.getContext("2d");
+      ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+      return ctx;
+    }
+
+    /* ---------- Star-like particles ---------- */
+    (function initParticles() {
+      const canvas = document.getElementById("particleCanvas");
+      let ctx = fitCanvasToParent(canvas);
+
+      let particles = [];
+      function createParticles() {
+        const count = Math.floor(window.innerWidth * window.innerHeight / 9000);
+        particles = [];
+        for (let i = 0; i < count; i++) {
+          particles.push({
+            x: Math.random() * window.innerWidth,
+            y: Math.random() * window.innerHeight,
+            r: Math.random() * 1.6 + 0.3,
+            speedY: Math.random() * 0.2 + 0.05,
+            alpha: Math.random() * 0.4 + 0.2
+          });
+        }
+      }
+
+      function render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#ffffff";
+        particles.forEach(p => {
+          p.y += p.speedY;
+          if (p.y > window.innerHeight) p.y = -4;
+          ctx.globalAlpha = p.alpha + Math.sin(Date.now() / 800 + p.x) * 0.15;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.globalAlpha = 1;
+        requestAnimationFrame(render);
+      }
+
+      window.addEventListener("resize", () => {
+        ctx = fitCanvasToParent(canvas);
+        createParticles();
+      });
+
+      createParticles();
+      render();
+    })();
+
+    /* ---------- Fireworks ---------- */
+    (function initFireworks() {
+      const canvas = document.getElementById("fireworksCanvas");
+      let ctx = fitCanvasToParent(canvas);
+
+      let fireworks = [];
+      let lastTime = 0;
+      const durationMs = 10000;
+      const startTime = performance.now();
+
+      function spawnFirework() {
+        const x = Math.random() * window.innerWidth * 0.9 + window.innerWidth * 0.05;
+        const y = Math.random() * window.innerHeight * 0.5 + window.innerHeight * 0.1;
+        const colors = [
+          "#ff69b9",
+          "#ff9ad7",
+          "#ffe7ff",
+          "#ffffff"
+        ];
+        const particles = [];
+        const count = 40 + Math.floor(Math.random() * 20);
+        for (let i = 0; i < count; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = Math.random() * 3 + 1;
+          particles.push({
+            x,
+            y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: 0,
+            maxLife: 40 + Math.random() * 20,
+            color: colors[Math.floor(Math.random() * colors.length)]
+          });
+        }
+        fireworks.push({ particles });
+      }
+
+      function updateAndDraw() {
+        const now = performance.now();
+        const elapsed = now - startTime;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (elapsed < durationMs && now - lastTime > 280 + Math.random() * 220) {
+          spawnFirework();
+          lastTime = now;
+        }
+
+        fireworks.forEach(fw => {
+          fw.particles.forEach(p => {
+            p.life++;
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += 0.03;
+            const t = p.life / p.maxLife;
+            if (t < 1) {
+              const alpha = (1 - t) * 0.9;
+              const gradientRadius = (1 - t) * 2.1 * 3 + 0.6 * 3;
+              const g = ctx.createRadialGradient(
+                p.x, p.y, 0,
+                p.x, p.y, gradientRadius
+              );
+              g.addColorStop(0, p.color + "ff");
+              g.addColorStop(0.4, p.color + "aa");
+              g.addColorStop(1, "rgba(0,0,0,0)");
+              ctx.fillStyle = g;
+              ctx.globalAlpha = alpha;
+              ctx.beginPath();
+              ctx.arc(p.x, p.y, gradientRadius, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.globalAlpha = 1;
+            }
+          });
+          fw.particles = fw.particles.filter(p => p.life < p.maxLife);
+        });
+
+        fireworks = fireworks.filter(fw => fw.particles.length > 0);
+
+        if (elapsed < durationMs + 2000) {
+          requestAnimationFrame(updateAndDraw);
+        }
+      }
+
+      window.addEventListener("resize", () => {
+        ctx = fitCanvasToParent(canvas);
+      });
+
+      updateAndDraw();
+    })();
+
+    /* ---------- Mouse glow ---------- */
+    (function initMouseGlow() {
+      const glow = document.getElementById("mouseGlow");
+
+      window.addEventListener("mousemove", e => {
+        glow.style.left = e.clientX + "px";
+        glow.style.top = e.clientY + "px";
+        glow.style.opacity = "0.8";
+      });
+
+      window.addEventListener("mouseleave", () => {
+        glow.style.opacity = "0.25";
+      });
+    })();
+
+    /* ---------- Scroll locking + hero fade timing ---------- */
+    (function initTiming() {
+      const hero = document.getElementById("hero");
+      const scrollHint = document.getElementById("scrollHint");
+      const messageSection = document.getElementById("message");
+
+      const unlockDelay = 10000; // 10 seconds
+
+      setTimeout(() => {
+        hero.classList.add("hero-fade-out");
+        document.body.classList.remove("lock-scroll");
+        document.body.classList.add("allow-scroll");
+        scrollHint.classList.add("visible");
+
+        // show the love letter section below, now they can scroll to it
+        messageSection.classList.remove("hidden");
+      }, unlockDelay);
+    })();
+
+    /* ---------- YouTube audio (loop first ~14s, try to autoplay) ---------- */
+    let ytPlayer;
+    function onYouTubeIframeAPIReady() {
+      ytPlayer = new YT.Player("yt-player", {
+        videoId: "sKJvJCsey84",
+        playerVars: {
+          autoplay: 1,
+          controls: 0,
+          loop: 1,
+          playlist: "sKJvJCsey84",
+          start: 0
+        },
+        events: {
+          onReady: (event) => {
+            try {
+              event.target.setVolume(25);
+              event.target.playVideo();
+            } catch (e) {}
+
+            // Manually loop the first 14 seconds
+            setInterval(() => {
+              if (!ytPlayer) return;
+              const t = ytPlayer.getCurrentTime();
+              if (t >= 14) ytPlayer.seekTo(0);
+            }, 1000);
+          }
+        }
+      });
+    }
+    window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
+  </script>
+</body>
+</html>
